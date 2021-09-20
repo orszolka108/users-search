@@ -3,33 +3,42 @@ import React, { useEffect, useState } from 'react';
 import { IUser } from './types';
 
 function App() {
-  const [error, setError] = useState(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [users, setUsers] = useState<IUser[]>([]);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState<string>('');
+  const [searchParams] = useState<string[]>(['name']);
 
   useEffect(() => {
     fetch('https://jsonplaceholder.typicode.com/users')
       .then((res) => res.json())
       .then(
         (result: IUser[]) => {
-          console.log(result);
           setIsLoaded(true);
           setUsers(result);
         },
         // Note: it's important to handle errors here
         // instead of a catch() block so that we don't swallow
         // exceptions from actual bugs in components.
-        (error) => {
+        (error: Error) => {
           setIsLoaded(true);
           setError(error);
         }
       );
   }, []);
 
+  function searchUsers(users: IUser[]) {
+    return users.filter((user: IUser) => {
+      return searchParams.some((newUser) => {
+        return (
+          user[newUser as keyof IUser].toString().toLowerCase().indexOf(query.toLowerCase()) > -1
+        );
+      });
+    });
+  }
   if (error) {
     //add error.message
-    return <div>Error:</div>;
+    return <div>Error: {error.message}</div>;
   } else if (!isLoaded) {
     return <div>Loading...</div>;
   } else {
@@ -44,22 +53,19 @@ function App() {
               className="container__search__input"
               placeholder="Search by user name..."
               value={query}
-              /*
-                                // set the value of our useState q
-                                //  anytime the user types in the search box
-                                */
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
         </div>
-        <ol className="container__list">
-          {users.map((user: IUser) => (
+        <ul className="container__list">
+          {searchUsers(users).map((user: IUser) => (
             <li key={user.id} className="container__list__item">
+              <span className="container__list__item--faded">{user.id}. </span>
               <span className="container__list__item--bold">{user.name} </span>
               <span className="container__list__item--faded">@{user.username}</span>
             </li>
           ))}
-        </ol>
+        </ul>
       </div>
     );
   }
